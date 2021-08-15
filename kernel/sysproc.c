@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -103,5 +104,22 @@ sys_trace(void)
   if(argint(0, &n) < 0)
     return -1;
   myproc()->mask = n;
+  return 0;
+}
+
+uint64
+sys_sysinfo(void)
+{
+  struct sysinfo info;
+  uint64 addr;
+  // 获取用户态传入的sysinfo结构体
+  if (argaddr(0, &addr) < 0) 
+    return -1;
+  struct proc* p = myproc();
+  info.freemem = freememory();
+  info.nproc = proc_size();
+  // 内核态的info赋值给用户态传进来的参数所在的地址addr，底层原理其实就是访问用户态结构体对象虚拟地址的物理地址并赋值
+  if (copyout(p->pagetable, addr, (char*)&info, sizeof(info)) < 0)
+    return -1;
   return 0;
 }
